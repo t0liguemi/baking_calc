@@ -11,8 +11,7 @@ type Recipe = {
 type QuantityList = { name: string; amount: number; proportion: number }[];
 
 export default function RecipeTable(props: { recipe: Recipe }) {
-  const [calculations, setCalculations] = useState<QuantityList>([]);
-  const [formValues, setFormValues] = useState(calculations);
+
 
   const totalRatio = props.recipe.ingredients.reduce(
     (acc, curr) => acc + curr.proportion,
@@ -25,11 +24,6 @@ export default function RecipeTable(props: { recipe: Recipe }) {
   });
 
   const recipe = props.recipe;
-
-
-
-  //check which ratio and its set value is changing the recipe and update the state
-
 
   const defaultValues: QuantityList = [
     { name: "doughWeight", amount: 1000, proportion: totalRatio },
@@ -48,11 +42,39 @@ export default function RecipeTable(props: { recipe: Recipe }) {
     });
   });
 
-  setFormValues(defaultValues);
+    
+  const [calculations, setCalculations] = useState<QuantityList>(defaultValues);
+  const [formValues, setFormValues] = useState(defaultValues);
 
 
-  console.log("Default",defaultValues);
-  console.log("Calculations",calculations);
+  useEffect(() => {
+    // Recalculate default values when the recipe changes
+    const defaultValues: QuantityList = [
+      { name: "doughWeight", amount: 1000, proportion: totalRatio },
+    ];
+
+    recipe.ingredients.forEach((ing) => {
+      defaultValues.push({
+        name: ing.name,
+        amount:
+          (Math.round(
+            (ing.proportion * refRatio.lastValue) / totalRatio + Number.EPSILON
+          ) *
+            100) /
+          100,
+        proportion: ing.proportion,
+      });
+    });
+
+    setCalculations(defaultValues);
+    setFormValues(defaultValues);
+  }, [recipe, totalRatio, refRatio.lastValue]);
+
+  //check which ratio and its set value is changing the recipe and update the state
+
+
+  console.log("Default", defaultValues);
+  console.log("Calculations", calculations);
 
   function updateValues(lastRatio: number, lastValue: number) {
     setRefRatio({ lastRatio, lastValue });
@@ -88,8 +110,11 @@ export default function RecipeTable(props: { recipe: Recipe }) {
         .concat(updatedValue, formValues.slice(index + 1))
     );
   }
+  console.log("FormValues", formValues);
+  if (formValues.length === 0) {
+    return <div>Loading...</div>}
 
-  return (
+  else return (
     <div className="text-zinc-700">
       <h2 className="text-2xl font-extrabold">{recipe.name}</h2>
       <p>{recipe.description}</p>
@@ -111,7 +136,7 @@ export default function RecipeTable(props: { recipe: Recipe }) {
         <p>g.</p>
       </div>
       <div className="border-2 border-zinc-800 max-w-[48rem] px-4 py-4">
-        <table className="w-full">
+        {formValues && <table className="w-full">
           <thead>
             <tr className="border-zinc-800">
               <th>Ingrediente</th>
@@ -155,7 +180,7 @@ export default function RecipeTable(props: { recipe: Recipe }) {
               );
             })}
           </tbody>
-        </table>
+        </table>}
       </div>
     </div>
   );
